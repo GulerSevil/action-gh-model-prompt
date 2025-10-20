@@ -1,0 +1,72 @@
+name: "action-gh-model-prompt"
+description: "Render a prompt file, call GitHub Models, and return JSON outputs."
+
+inputs:
+  model:
+    description: "Model id (e.g., openai/gpt-4o-mini)"
+    default: "openai/gpt-4o-mini"
+    required: false
+  prompt_path:
+    description: "Path to the prompt file"
+    required: true
+  placeholders_json:
+    description: "JSON object whose keys map to {{KEY}} in the prompt"
+    required: true
+    default: "{}"
+  system:
+    description: "System message; default enforces strict JSON"
+    default: "Output STRICT JSON only."
+    required: false
+  response_format:
+    description: "json_object | text"
+    default: "json_object"
+    required: false
+  api_url:
+    description: "Override inference endpoint"
+    default: "https://models.github.ai/inference/chat/completions"
+    required: false
+  timeout_ms:
+    description: "HTTP timeout in ms"
+    default: "120000"
+    required: false
+  strip_hash_comments:
+    description: "Remove lines starting with '# ' before sending"
+    default: "true"
+    required: false
+  request_debug:
+    description: "Echo rendered prompt/payload to logs (careful in public repos)"
+    default: "false"
+    required: false
+  fail_on_invalid_json:
+    description: "Fail if response isn't valid JSON (when response_format=json_object)"
+    default: "true"
+    required: false
+  jq_pick:
+    description: "Optional JSONPath-like (jq) selector, e.g. .verdict.release_risk"
+    default: ""
+    required: false
+  pick_aggregation:
+    description: "How to aggregate picked values across batches: none | first | join | worst_severity"
+    default: "none"
+    required: false
+  token:
+    description: "GitHub token; defaults to env.GITHUB_TOKEN"
+    required: false
+  batch_size:
+    description: "If >0, split FILE_LIST into batches and call model per batch"
+    default: "0"
+    required: false
+
+outputs:
+  raw_response:
+    description: "Raw HTTP response from the models API"
+  message_content:
+    description: "choices[0].message.content"
+  json:
+    description: "Parsed JSON (pretty-printed) when available"
+  picked:
+    description: "Value of jq_pick if provided"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

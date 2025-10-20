@@ -1,0 +1,25 @@
+{
+    "name": "action-gh-model-prompt",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "ncc build src/index.ts -o dist -m",
+        "lint": "eslint .",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "@actions/core": "^1.11.1",
+        "@actions/github": "^6.0.0",
+        "node-fetch": "^3.3.2"
+    },
+    "devDependencies": {
+        "@types/node": "^20.12.12",
+        "@vercel/ncc": "^0.38.1",
+        "eslint": "^9.10.0",
+        "typescript": "^5.6.3",
+        "vitest": "^3.2.4"
+    }
+}
