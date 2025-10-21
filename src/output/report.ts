@@ -1,19 +1,26 @@
 export function renderMarkdownReport(parsed: any): string {
   if (!parsed || typeof parsed !== "object") return "";
-  const da = parsed.detailed_analysis || {};
+  // Support both detailed_analysis/json_summary and analysis schemas
+  const da = parsed.detailed_analysis || parsed.analysis || {};
   const es = da.executive_summary || {};
   const js = parsed.json_summary || {};
 
-  const safeJoin = (arr: any[], sep: string) => Array.isArray(arr) ? arr.join(sep) : "";
   const bullet = (arr: any[]) => Array.isArray(arr) ? arr.map((x) => `- ${String(x)}`).join("\n") : "";
 
   const topFindings = Array.isArray(es.top_findings)
-    ? es.top_findings.map((f: any) => `- [${f.severity ?? ""}] ${f.file ?? ""}: ${f.description ?? ""}`).join("\n")
+    ? es.top_findings.map((f: any) => {
+        if (typeof f === "string") return `- ${f}`;
+        return `- [${f.severity ?? ""}] ${f.file ?? ""}: ${f.description ?? ""}`;
+      }).join("\n")
     : "";
 
-  const criticalIssues = Array.isArray(da.critical_issues)
-    ? da.critical_issues.map((i: any) => `- [${i.severity ?? ""}] ${i.file ?? ""}: ${i.description ?? ""}`).join("\n")
-    : "";
+  const criticalArray = Array.isArray(da.critical_issues) ? da.critical_issues : [];
+  const criticalIssues = criticalArray
+    .map((i: any) => {
+      if (typeof i === "string") return `- ${i}`;
+      return `- [${i.severity ?? ""}] ${i.file ?? ""}: ${i.description ?? ""}`;
+    })
+    .join("\n");
 
   const filesOfConcern = bullet(js.files_of_concern || []);
   const impactedAreas = bullet(js.impacted_areas || []);
@@ -31,14 +38,13 @@ export function renderMarkdownReport(parsed: any): string {
 
   const notes = js.notes ? `\n## Notes\n${js.notes}\n` : "";
 
-  const out = [header, summary, findings, crit, files, areas, tests, miti, notes].join("");
-  if (out.trim() === "# Risk Report") {
-    try {
-      return `# Risk Report\n\n\n## Raw JSON\n\n\n\n\n\n\n\n\n\n\n\n` + "```json\n" + JSON.stringify(parsed, null, 2) + "\n```";
-    } catch {
-      return out;
-    }
-  }
+  let out = [header, summary, findings, crit, files, areas, tests, miti, notes].join("");
+
+  // Always append raw JSON for completeness
+  try {
+    out += `\n## Raw JSON\n\n` + "```json\n" + JSON.stringify(parsed, null, 2) + "\n```";
+  } catch {}
+
   return out;
 }
 
