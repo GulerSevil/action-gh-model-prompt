@@ -31,7 +31,15 @@ export function renderMarkdownReport(parsed: any): string {
 
   const notes = js.notes ? `\n## Notes\n${js.notes}\n` : "";
 
-  return [header, summary, findings, crit, files, areas, tests, miti, notes].join("");
+  const out = [header, summary, findings, crit, files, areas, tests, miti, notes].join("");
+  if (out.trim() === "# Risk Report") {
+    try {
+      return `# Risk Report\n\n\n## Raw JSON\n\n\n\n\n\n\n\n\n\n\n\n` + "```json\n" + JSON.stringify(parsed, null, 2) + "\n```";
+    } catch {
+      return out;
+    }
+  }
+  return out;
 }
 
 

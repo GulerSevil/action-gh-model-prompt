@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import { renderPlaceholders } from "../../prompt/render";
 import { callModelsApi } from "../../http/modelsClient";
 import { extractMessageContent } from "../../output/response";
+import { extractFirstJson } from "../../output/jsonExtract";
 import { pickByDotPath, aggregatePickedValues } from "../../prompt/pick";
 import { filterDiffByFiles, splitIntoBatches } from "../batching";
 import { worstSeverity } from "../util/severity";
@@ -93,7 +94,7 @@ export async function runBatchedInference(
     messageContents.push(content);
     if (options.responseFormat === "json_object" && content) {
       try {
-        const parsed = JSON.parse(content);
+        const parsed = extractFirstJson(content) ?? JSON.parse(content);
         jsonObjects.push(parsed);
         if (options.jqPick) {
           const picked = pickByDotPath(parsed, options.jqPick);
@@ -116,6 +117,8 @@ export async function runBatchedInference(
 
   if (options.responseFormat === "json_object" && options.failOnInvalidJson) {
     const anyMissing = messageContents.some((c) => {
+      const extracted = extractFirstJson(c);
+      if (extracted) return false;
       try { JSON.parse(c); return false; } catch { return true; }
     });
     if (anyMissing) core.setFailed("At least one batch did not return valid JSON.");
