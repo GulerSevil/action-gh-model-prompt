@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import { getActionInputs } from "./core/runtime/inputs";
 import { loadPrompt } from "./prompt/loader";
 import { handleOutputs } from "./output/response";
+import { renderMarkdownReport } from "./output/report";
 import { runBatchedInference } from "./core/inference/batchedInference";
 import { runSingleInference } from "./core/inference/singleInference";
 import { parseFilesAndDiff } from "./core/util/promptPlaceholders";
@@ -67,7 +68,14 @@ async function runBatchedPath(
 
   core.setOutput("raw_response", JSON.stringify(rawResponses));
   core.setOutput("message_content", JSON.stringify(messageContents));
+  const joinedText = messageContents.join("\n\n");
+  if (joinedText) core.setOutput("text", joinedText);
   if (jsonObjects.length > 0) core.setOutput("json", JSON.stringify(jsonObjects, null, 2));
+  if (jsonObjects.length > 0) {
+    const reports = jsonObjects.map((obj) => renderMarkdownReport(obj)).filter((r) => !!r);
+    const aggregated = reports.join("\n\n---\n\n");
+    if (aggregated) core.setOutput("report", aggregated);
+  }
   if (picked !== undefined) core.setOutput("picked", picked);
 }
 

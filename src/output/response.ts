@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
 import { pickByDotPath } from "../prompt/pick";
+import { renderMarkdownReport } from "./report";
 
 export function extractMessageContent(rawResponse: string): string {
   try {
@@ -19,12 +20,15 @@ export function handleOutputs(
 ): void {
   core.setOutput("raw_response", rawResponse);
   core.setOutput("message_content", messageContent);
+  core.setOutput("text", messageContent);
   console.log("messageContent", messageContent);
   if (!messageContent) return;
   try {
     const parsed = JSON.parse(messageContent);
     core.setOutput("json", JSON.stringify(parsed, null, 2));
     console.log("parsed", parsed);
+    const report = renderMarkdownReport(parsed);
+    if (report) core.setOutput("report", report);
     
 
     if (jqPick) {

@@ -62,10 +62,14 @@ outputs:
     description: "Raw HTTP response from the models API"
   message_content:
     description: "choices[0].message.content"
+  text:
+    description: "Plain text content (single) or joined text (batched)"
   json:
     description: "Parsed JSON (pretty-printed) when available"
   picked:
     description: "Value of jq_pick if provided"
+  report:
+    description: "Markdown report derived from JSON content"
 
 runs:
   using: "node20"
