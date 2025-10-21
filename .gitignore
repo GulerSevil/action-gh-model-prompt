@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-dist/
 
 # Build outputs (keep dist committed for GitHub Actions runtime)
 lib/

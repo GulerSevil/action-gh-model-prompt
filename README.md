@@ -20,17 +20,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run model prompt
-        uses: your-org/action-gh-model-prompt@v1
+      - name: PR Risk Analysis
+        uses: GulerSevil/actions-pr-risk-analysis@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          model: openai/gpt-4o-mini
-          prompt_path: prompts/review.prompt
-          placeholders_json: |
-            {"NAME": "world"}
+          repository: ${{ github.repository }}
+          prompt: .github/prompts/ios-risk-unified.prompt
+          placeholders_json: >
+            {
+              "MODE":"pr",
+              "DIFF":${{ steps.prepare_diff.outputs.diff }},
+              "FILE_LIST":${{ steps.prepare_diff.outputs.files }},
+              "CONTEXT":${{ steps.prepare_diff.outputs.context }}
+            }
           response_format: json_object
           jq_pick: .verdict.release_risk
           pick_aggregation: none
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Use outputs
         run: |
