@@ -37,3 +37,26 @@ export function aggregatePickedValues(
   if (agg === "worst_severity") return worstSeverityFn(values);
   return undefined;
 }
+
+export function splitSelectors(jqPick: string): string[] {
+  if (!jqPick) return [];
+  // Comma-separated list of selectors; trim whitespace; ignore empty
+  return jqPick
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+export function pickByDotPaths(input: unknown, jqPick: string): unknown {
+  const selectors = splitSelectors(jqPick);
+  if (selectors.length <= 1) {
+    const sel = selectors[0] ?? jqPick;
+    return pickByDotPath(input, sel);
+  }
+  const out: Record<string, unknown> = {};
+  for (const sel of selectors) {
+    const val = pickByDotPath(input, sel);
+    if (val !== undefined) out[sel] = val as unknown;
+  }
+  return out;
+}

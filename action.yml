@@ -68,6 +68,8 @@ outputs:
     description: "Parsed JSON (pretty-printed) when available"
   picked:
     description: "Value of jq_pick if provided"
+  picked_markdown:
+    description: "Markdown list/sections derived from picked value(s)"
   report:
     description: "Markdown report derived from JSON content"
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickByDotPath, aggregatePickedValues } from '../src/prompt/pick';
+import { pickByDotPath, aggregatePickedValues, splitSelectors, pickByDotPaths } from '../src/prompt/pick';
 import { worstSeverity } from '../src/core/util/severity';
 
 describe('pickByDotPath', () => {
@@ -31,6 +31,23 @@ describe('aggregatePickedValues', () => {
   });
   it('worst_severity ranks correctly', () => {
     expect(aggregatePickedValues(vals, 'worst_severity', worstSeverity)).toBe('high');
+  });
+});
+
+describe('multi-selector picking', () => {
+  it('splits selectors by comma', () => {
+    expect(splitSelectors('a.b, c[0].d , .e')).toEqual(['a.b','c[0].d','.e']);
+  });
+
+  it('returns single value for single selector', () => {
+    const obj = { a: 1 };
+    expect(pickByDotPaths(obj, 'a')).toBe(1);
+  });
+
+  it('returns object keyed by selectors for multiple', () => {
+    const obj: any = { a: { b: 2 }, c: [ { d: 3 } ] };
+    const out = pickByDotPaths(obj, 'a.b, c[0].d');
+    expect(out).toEqual({ 'a.b': 2, 'c[0].d': 3 });
   });
 });
 

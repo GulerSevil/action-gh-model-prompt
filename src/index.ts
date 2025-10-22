@@ -1,4 +1,5 @@
 import * as core from "@actions/core";
+import { computeEffectiveSystem } from "./core/util/system";
 import { getActionInputs } from "./core/runtime/inputs";
 import { loadPrompt } from "./prompt/loader";
 import { handleOutputs } from "./output/response";
@@ -14,9 +15,10 @@ async function runSinglePath(
   inputs: ReturnType<typeof getActionInputs>,
   token: string,
 ): Promise<void> {
+  const effectiveSystem = computeEffectiveSystem(inputs.system, inputs.responseFormat);
   const single = await runSingleInference(promptRaw, placeholders, {
     model: inputs.model,
-    system: inputs.system,
+    system: effectiveSystem,
     apiUrl: inputs.apiUrl,
     timeoutMs: inputs.timeoutMs,
     responseFormat: inputs.responseFormat,
@@ -46,7 +48,8 @@ async function runBatchedPath(
   inputs: ReturnType<typeof getActionInputs>,
   token: string,
 ): Promise<void> {
-  const { rawResponses, messageContents, jsonObjects, picked } = await runBatchedInference(
+  const effectiveSystem = computeEffectiveSystem(inputs.system, inputs.responseFormat);
+  const { rawResponses, messageContents, jsonObjects, picked, pickedMarkdown } = await runBatchedInference(
     promptRaw,
     placeholders,
     allFiles,
@@ -54,7 +57,7 @@ async function runBatchedPath(
     batchSize,
     {
       model: inputs.model,
-      system: inputs.system,
+      system: effectiveSystem,
       apiUrl: inputs.apiUrl,
       timeoutMs: inputs.timeoutMs,
       responseFormat: inputs.responseFormat,
@@ -75,8 +78,13 @@ async function runBatchedPath(
     const reports = jsonObjects.map((obj) => renderMarkdownReport(obj)).filter((r) => !!r);
     const aggregated = reports.join("\n\n---\n\n");
     if (aggregated) core.setOutput("report", aggregated);
+    // In text mode, prefer meaningful report text over raw JSON/text
+    if (inputs.responseFormat === "text" && aggregated) {
+      core.setOutput("text", aggregated);
+    }
   }
   if (picked !== undefined) core.setOutput("picked", picked);
+  if (pickedMarkdown !== undefined) core.setOutput("picked_markdown", pickedMarkdown);
 }
 
 async function run(): Promise<void> {

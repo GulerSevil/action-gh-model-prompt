@@ -3,7 +3,8 @@ import { renderPlaceholders } from "../../prompt/render";
 import { callModelsApi } from "../../http/modelsClient";
 import { extractMessageContent } from "../../output/response";
 import { extractFirstJson } from "../../output/jsonExtract";
-import { pickByDotPath, aggregatePickedValues } from "../../prompt/pick";
+import { pickByDotPath, pickByDotPaths, aggregatePickedValues } from "../../prompt/pick";
+import { renderPickedMarkdown } from "../../output/pickedMarkdown";
 import { filterDiffByFiles, splitIntoBatches } from "../batching";
 import { worstSeverity } from "../util/severity";
 import type { InferenceOptions } from "./inferenceTypes";
@@ -74,7 +75,7 @@ export async function runBatchedInference(
   fullDiff: string,
   batchSize: number,
   options: InferenceOptions,
-): Promise<{ rawResponses: string[]; messageContents: string[]; jsonObjects: any[]; picked?: string }> {
+): Promise<{ rawResponses: string[]; messageContents: string[]; jsonObjects: any[]; picked?: string; pickedMarkdown?: string }> {
   const planner = new BatchPlanner(fileList, batchSize);
   const batches = planner.plan();
   core.info(`Batching ${fileList.length} files into ${batches.length} batches of up to ${batchSize}.`);
@@ -84,6 +85,7 @@ export async function runBatchedInference(
   const jsonObjects: any[] = [];
   const pickedValues: string[] = [];
   const runner = new RequestRunner(options);
+  const pickedMarkdownValues: string[] = [];
 
   for (let i = 0; i < batches.length; i++) {
     const batchFiles = batches[i];
@@ -97,15 +99,19 @@ export async function runBatchedInference(
         const parsed = extractFirstJson(content) ?? JSON.parse(content);
         jsonObjects.push(parsed);
         if (options.jqPick) {
-          const picked = pickByDotPath(parsed, options.jqPick);
-          if (picked != null) pickedValues.push(typeof picked === "string" ? picked : JSON.stringify(picked));
+          const picked = pickByDotPaths(parsed, options.jqPick);
+          if (picked != null) {
+            pickedValues.push(typeof picked === "string" ? picked : JSON.stringify(picked));
+            const md = renderPickedMarkdown(picked);
+            if (md) pickedMarkdownValues.push(md);
+          }
         }
       } catch {
       }
     }
   }
 
-  const result: { rawResponses: string[]; messageContents: string[]; jsonObjects: any[]; picked?: string } = {
+  const result: { rawResponses: string[]; messageContents: string[]; jsonObjects: any[]; picked?: string; pickedMarkdown?: string } = {
     rawResponses,
     messageContents,
     jsonObjects,
@@ -113,6 +119,8 @@ export async function runBatchedInference(
   if (options.jqPick) {
     const aggregated = aggregatePickedValues(pickedValues, options.pickAggregation, worstSeverity);
     if (aggregated !== undefined) result.picked = aggregated;
+    const aggregatedMd = aggregatePickedValues(pickedMarkdownValues, options.pickAggregation, worstSeverity);
+    if (aggregatedMd !== undefined) result.pickedMarkdown = aggregatedMd;
   }
 
   if (options.responseFormat === "json_object" && options.failOnInvalidJson) {

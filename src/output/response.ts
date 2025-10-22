@@ -1,5 +1,6 @@
 import * as core from "@actions/core";
-import { pickByDotPath } from "../prompt/pick";
+import { pickByDotPath, pickByDotPaths } from "../prompt/pick";
+import { renderPickedMarkdown } from "./pickedMarkdown";
 import { renderMarkdownReport } from "./report";
 import { extractFirstJson } from "./jsonExtract";
 
@@ -28,14 +29,19 @@ export function handleOutputs(
     const parsed = extractFirstJson(messageContent) ?? JSON.parse(messageContent);
     core.setOutput("json", JSON.stringify(parsed, null, 2));
     console.log("parsed", parsed);
-    const report = renderMarkdownReport(parsed);
+    const report = renderMarkdownReport(parsed, messageContent);
     if (report) core.setOutput("report", report);
-    
+    // If not expecting JSON (text mode), prefer meaningful report as the text output
+    if (!expectingJson && report) {
+      core.setOutput("text", report);
+    }
 
     if (jqPick) {
-      const picked = pickByDotPath(parsed, jqPick);
+      const picked = pickByDotPaths(parsed, jqPick);
       if (picked !== undefined) {
         core.setOutput("picked", typeof picked === "string" ? picked : JSON.stringify(picked));
+        const md = renderPickedMarkdown(picked);
+        if (md) core.setOutput("picked_markdown", md);
       }
     }
   } catch (e: any) {
