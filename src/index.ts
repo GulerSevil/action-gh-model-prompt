@@ -83,6 +83,18 @@ async function runBatchedPath(
       core.setOutput("text", aggregated);
     }
   }
+  // Fallback for text mode if no JSON reports produced: build report(s) from message contents
+  if (inputs.responseFormat === "text") {
+    const haveReport = !!core.getInput("report");
+    if (!haveReport) {
+      const reports = messageContents.map((mc) => renderMarkdownReport(undefined, mc)).filter((r) => !!r);
+      const aggregated = reports.join("\n\n---\n\n");
+      if (aggregated) {
+        core.setOutput("report", aggregated);
+        core.setOutput("text", aggregated);
+      }
+    }
+  }
   if (picked !== undefined) core.setOutput("picked", picked);
   if (pickedMarkdown !== undefined) core.setOutput("picked_markdown", pickedMarkdown);
 }

@@ -51,5 +51,11 @@ export function handleOutputs(
       core.endGroup();
       throw new Error(`Model did not return valid JSON: ${e.message}`);
     }
+    // Fallback: render a report from raw message content
+    const report = renderMarkdownReport(undefined, messageContent);
+    if (report) {
+      core.setOutput("report", report);
+      if (!expectingJson) core.setOutput("text", report);
+    }
   }
 }
